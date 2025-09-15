@@ -1,11 +1,11 @@
-const ACCESS_TOKEN = "xxx";
+const LINE_ACCESS_TOKEN = "xxx";
 const LINE_OA_ID = "@xxx";
 const PREFILL_TEXT = "กรอกเบอร์โทรเพื่อยืนยัน : ";
 const prefillURL = "https://line.me/R/oaMessage/" + LINE_OA_ID + "/?" + encodeURIComponent(PREFILL_TEXT);
-const LINE_NOTIFY_TOKEN = "xxx";
-const DriveId ="xxx"
-const CalendarID = "xxx"
 
+const LINE_NOTIFY_TOKEN = "xxx";
+const DriveId ="xxx";
+const CalendarID = "ปปป";
 
 const TIME_SLOTS = {
   '08:00-12:00': { start: '08:00', end: '12:00', label: '08:00 น. - 12:00 น.' },
@@ -13,32 +13,115 @@ const TIME_SLOTS = {
   '08:00-16:30': { start: '08:00', end: '16:30', label: '08:00 น. - 16:30 น.' }
 };
 
-/**
- * Sends a message to the Line Notify service.
- * @param {string} message The message to send.
- */
-function sendLineNotify(message) {
-  const url = "https://notify-api.line.me/api/notify";
-  const headers = {
-    "Authorization": "Bearer " + LINE_NOTIFY_TOKEN
-  };
+
+function sendLineFlexMessagePush(bookingData) {
+  const toUserId = LINE_NOTIFY_TOKEN; 
+  const url = "https://api.line.me/v2/bot/message/push";
+
   const payload = {
-    "message": message
+    to: toUserId,
+    messages: [{
+      type: "flex",
+      altText: "มีการส่งกรอกฟอร์มจองสนามใหม่",
+      contents: {
+        type: "bubble",
+        header: {
+          type: "box",
+          layout: "vertical",
+          contents: [
+            { type: "text", text: "แจ้งเตือนการส่งฟอร์ม", weight: "bold", size: "lg" }
+          ]
+        },
+        body: {
+          type: "box",
+          layout: "vertical",
+          spacing: "md",
+          contents: [
+            {
+              type: "box",
+              layout: "baseline",
+              spacing: "sm",
+              contents: [
+                { type: "text", text: "ชื่อ-สกุล:", color: "#aaaaaa", size: "sm", flex: 3 },
+                { type: "text", text: bookingData.fullName, wrap: true, size: "sm", flex: 5 }
+              ]
+            },
+            {
+              type: "box",
+              layout: "baseline",
+              spacing: "sm",
+              contents: [
+                { type: "text", text: "เบอร์โทรศัพท์:", color: "#aaaaaa", size: "sm", flex: 3 },
+                { type: "text", text: bookingData.phone, wrap: true, size: "sm", flex: 5 }
+              ]
+            },
+            {
+              type: "box",
+              layout: "baseline",
+              spacing: "sm",
+              contents: [
+                { type: "text", text: "วันที่เริ่มต้น:", color: "#aaaaaa", size: "sm", flex: 3 },
+                { type: "text", text: bookingData.bookingStartDate, wrap: true, size: "sm", flex: 5 }
+              ]
+            },
+            {
+              type: "box",
+              layout: "baseline",
+              spacing: "sm",
+              contents: [
+                { type: "text", text: "วันที่สิ้นสุด:", color: "#aaaaaa", size: "sm", flex: 3 },
+                { type: "text", text: bookingData.bookingEndDate, wrap: true, size: "sm", flex: 5 }
+              ]
+            },
+            {
+              type: "box",
+              layout: "baseline",
+              spacing: "sm",
+              contents: [
+                { type: "text", text: "สถานะ:", color: "#aaaaaa", size: "sm", flex: 3 },
+                { type: "text", text: bookingData.status, wrap: true, size: "sm", flex: 5 }
+              ]
+            },
+            {
+              type: "box",
+              layout: "baseline",
+              spacing: "sm",
+              contents: [
+                { type: "text", text: "ประเภทสนามที่จอง:", color: "#aaaaaa", size: "sm", flex: 3 },
+                { type: "text", text: bookingData.fieldType, wrap: true, size: "sm", flex: 5 }
+              ]
+            },
+            {
+              type: "box",
+              layout: "baseline",
+              spacing: "sm",
+              contents: [
+                { type: "text", text: "ช่วงเวลา:", color: "#aaaaaa", size: "sm", flex: 3 },
+                { type: "text", text: TIME_SLOTS[bookingData.timeSlot].label, wrap: true, size: "sm", flex: 5 }
+              ]
+            }
+          ]
+        }
+      }
+    }]
   };
 
   const options = {
-    "method": "post",
-    "headers": headers,
-    "payload": payload,
-    "muteHttpExceptions": true // Prevents script from stopping on HTTP errors
+    method: 'post',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${LINE_ACCESS_TOKEN}`
+    },
+    payload: JSON.stringify(payload)
   };
 
   try {
     UrlFetchApp.fetch(url, options);
   } catch (e) {
-    console.error("Error sending Line Notify message: " + e.toString());
+    console.error("Error sending LINE Flex Message: " + e.toString());
   }
 }
+
 
 function bookCalendar(reserveId, startDate, endDate, timeSlotKey, userName, fieldType, note) {
   const calendarId = CalendarID;
@@ -157,7 +240,7 @@ function replyToLine(replyToken, message) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + ACCESS_TOKEN
+      'Authorization': 'Bearer ' + LINE_ACCESS_TOKEN
     },
     payload: JSON.stringify(payload)
   };
@@ -180,7 +263,7 @@ function replyFlexMessage(replyToken, flexContent) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + ACCESS_TOKEN
+      'Authorization': 'Bearer ' + LINE_ACCESS_TOKEN
     },
     payload: JSON.stringify(payload)
   };
@@ -507,19 +590,8 @@ function doPost(e) {
     
     sheet.appendRow(newRow);
     
-    // Send detailed notification via Line Notify
-    const notifyMessage = `
-🔔 มีการส่งฟอร์มใหม่
---------------------
-ชื่อ-สกุล: ${data.fullName}
-เบอร์โทรศัพท์: ${data.phone}
-วันที่เริ่มต้น: ${data.bookingStartDate}
-วันที่สิ้นสุด: ${data.bookingEndDate}
-สถานะ: ${data.status}
-ประเภทสนามที่จอง: ${data.fieldType}
-ช่วงเวลา: ${TIME_SLOTS[data.timeSlot].label}
-`;
-    sendLineNotify(notifyMessage);
+    // Send detailed Flex Message via LINE Messaging API
+    sendLineFlexMessagePush(data);
     
     return ContentService
       .createTextOutput(JSON.stringify({

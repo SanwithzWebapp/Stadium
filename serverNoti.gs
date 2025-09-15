@@ -1,11 +1,8 @@
-const LINE_ACCESS_TOKEN = "xxx";
+const ACCESS_TOKEN = "xxx";
 const LINE_OA_ID = "@xxx";
 const PREFILL_TEXT = "กรอกเบอร์โทรเพื่อยืนยัน : ";
 const prefillURL = "https://line.me/R/oaMessage/" + LINE_OA_ID + "/?" + encodeURIComponent(PREFILL_TEXT);
-
-const LINE_NOTIFY_TOKEN = "xxx";
-const DriveId ="xxx";
-const CalendarID = "ปปป";
+const Line_USER_ID = "xxx";
 
 const TIME_SLOTS = {
   '08:00-12:00': { start: '08:00', end: '12:00', label: '08:00 น. - 12:00 น.' },
@@ -13,118 +10,8 @@ const TIME_SLOTS = {
   '08:00-16:30': { start: '08:00', end: '16:30', label: '08:00 น. - 16:30 น.' }
 };
 
-
-function sendLineFlexMessagePush(bookingData) {
-  const toUserId = LINE_NOTIFY_TOKEN; 
-  const url = "https://api.line.me/v2/bot/message/push";
-
-  const payload = {
-    to: toUserId,
-    messages: [{
-      type: "flex",
-      altText: "มีการส่งกรอกฟอร์มจองสนามใหม่",
-      contents: {
-        type: "bubble",
-        header: {
-          type: "box",
-          layout: "vertical",
-          contents: [
-            { type: "text", text: "แจ้งเตือนการส่งฟอร์ม", weight: "bold", size: "lg" }
-          ]
-        },
-        body: {
-          type: "box",
-          layout: "vertical",
-          spacing: "md",
-          contents: [
-            {
-              type: "box",
-              layout: "baseline",
-              spacing: "sm",
-              contents: [
-                { type: "text", text: "ชื่อ-สกุล:", color: "#aaaaaa", size: "sm", flex: 3 },
-                { type: "text", text: bookingData.fullName, wrap: true, size: "sm", flex: 5 }
-              ]
-            },
-            {
-              type: "box",
-              layout: "baseline",
-              spacing: "sm",
-              contents: [
-                { type: "text", text: "เบอร์โทรศัพท์:", color: "#aaaaaa", size: "sm", flex: 3 },
-                { type: "text", text: bookingData.phone, wrap: true, size: "sm", flex: 5 }
-              ]
-            },
-            {
-              type: "box",
-              layout: "baseline",
-              spacing: "sm",
-              contents: [
-                { type: "text", text: "วันที่เริ่มต้น:", color: "#aaaaaa", size: "sm", flex: 3 },
-                { type: "text", text: bookingData.bookingStartDate, wrap: true, size: "sm", flex: 5 }
-              ]
-            },
-            {
-              type: "box",
-              layout: "baseline",
-              spacing: "sm",
-              contents: [
-                { type: "text", text: "วันที่สิ้นสุด:", color: "#aaaaaa", size: "sm", flex: 3 },
-                { type: "text", text: bookingData.bookingEndDate, wrap: true, size: "sm", flex: 5 }
-              ]
-            },
-            {
-              type: "box",
-              layout: "baseline",
-              spacing: "sm",
-              contents: [
-                { type: "text", text: "สถานะ:", color: "#aaaaaa", size: "sm", flex: 3 },
-                { type: "text", text: bookingData.status, wrap: true, size: "sm", flex: 5 }
-              ]
-            },
-            {
-              type: "box",
-              layout: "baseline",
-              spacing: "sm",
-              contents: [
-                { type: "text", text: "ประเภทสนามที่จอง:", color: "#aaaaaa", size: "sm", flex: 3 },
-                { type: "text", text: bookingData.fieldType, wrap: true, size: "sm", flex: 5 }
-              ]
-            },
-            {
-              type: "box",
-              layout: "baseline",
-              spacing: "sm",
-              contents: [
-                { type: "text", text: "ช่วงเวลา:", color: "#aaaaaa", size: "sm", flex: 3 },
-                { type: "text", text: TIME_SLOTS[bookingData.timeSlot].label, wrap: true, size: "sm", flex: 5 }
-              ]
-            }
-          ]
-        }
-      }
-    }]
-  };
-
-  const options = {
-    method: 'post',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${LINE_ACCESS_TOKEN}`
-    },
-    payload: JSON.stringify(payload)
-  };
-
-  try {
-    UrlFetchApp.fetch(url, options);
-  } catch (e) {
-    console.error("Error sending LINE Flex Message: " + e.toString());
-  }
-}
-
-
 function bookCalendar(reserveId, startDate, endDate, timeSlotKey, userName, fieldType, note) {
-  const calendarId = CalendarID;
+  const calendarId = "5265c30fcf5d9e7d229adef57a1a86ad6bbcc731ce48dffa4e117695e08c8d55@group.calendar.google.com";
   const calendar = CalendarApp.getCalendarById(calendarId);
   const timeSlot = TIME_SLOTS[timeSlotKey];
 
@@ -134,38 +21,32 @@ function bookCalendar(reserveId, startDate, endDate, timeSlotKey, userName, fiel
 
   const currentDate = new Date(startDate);
   const endDateObj = new Date(endDate);
-  
-  // Create a descriptive location name for the calendar event
-  let eventLocation = fieldType;
-  if (fieldType.includes('สนาม')) {
-    eventLocation = 'สนาม' + fieldType.split('สนาม')[1];
-  }
 
   while (currentDate.getTime() <= endDateObj.getTime()) {
     const startDateTime = new Date(`${currentDate.toISOString().split('T')[0]}T${timeSlot.start}:00`);
     const endDateTime = new Date(`${currentDate.toISOString().split('T')[0]}T${timeSlot.end}:00`);
 
-    // Check for conflicts on the same date and time slot
     const events = calendar.getEvents(startDateTime, endDateTime);
-    for (let event of events) {
-      if (event.getTitle().includes(fieldType)) {
-        throw new Error(`การจองสำหรับ ${fieldType} ในวันที่ ${currentDate.toLocaleDateString('th-TH')} ช่วงเวลา ${timeSlot.label} ถูกจองแล้ว`);
+    if (events.length > 0) {
+      for (let event of events) {
+        if (event.getDescription().includes(`สนาม:${fieldType}`) || event.getTitle().includes(`สนาม${fieldType}`)) {
+           throw new Error(`สนาม${fieldType} ในวันที่ ${currentDate.toLocaleDateString('th-TH')} ช่วงเวลา ${timeSlot.label} ถูกจองแล้ว`);
+        }
       }
     }
 
-    // Create the event
-    const eventDetails = `ID_booking:${reserveId}|สถานที่:${fieldType}|ผู้จอง:${userName}|หมายเหตุ:${note || "ไม่มี"}`;
+    const eventDetails = `ID_booking:${reserveId}|สนาม:${fieldType}|ผู้จอง:${userName}|หมายเหตุ:${note || "ไม่มี"}`;
     calendar.createEvent(
-      `จอง${fieldType} โดย ${userName}`,
+      `จองสนาม${fieldType} โดย ${userName} (${currentDate.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })})`,
       startDateTime,
       endDateTime,
       {
         description: eventDetails,
-        location: eventLocation
+        location: `สนาม${fieldType}`
       }
     );
     
-    currentDate.setDate(currentDate.getDate() + 1); // Move to the next day
+    currentDate.setDate(currentDate.getDate() + 1);
   }
 }
 
@@ -200,7 +81,7 @@ function cancelBookingByPhone(phoneNumber) {
       sheet.deleteRow(rowIndex);
     });
     
-    const calendarId = CalendarID;
+    const calendarId = "5265c30fcf5d9e7d229adef57a1a86ad6bbcc731ce48dffa4e117695e08c8d55@group.calendar.google.com";
     const calendar = CalendarApp.getCalendarById(calendarId);
     
     canceledBookings.forEach(booking => {
@@ -240,7 +121,7 @@ function replyToLine(replyToken, message) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + LINE_ACCESS_TOKEN
+      'Authorization': 'Bearer ' + ACCESS_TOKEN
     },
     payload: JSON.stringify(payload)
   };
@@ -263,7 +144,7 @@ function replyFlexMessage(replyToken, flexContent) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + LINE_ACCESS_TOKEN
+      'Authorization': 'Bearer ' + ACCESS_TOKEN
     },
     payload: JSON.stringify(payload)
   };
@@ -387,6 +268,96 @@ function createSuccessFlexMessage(result) {
       paddingAll: "15px"
     }
   };
+}
+
+function sendBookingNotification(data) {
+  const payload = {
+    to: Line_USER_ID,
+    messages: [{
+      type: "flex",
+      altText: "มีการส่งฟอร์มใหม่",
+      contents: {
+        type: "bubble",
+        header: {
+          type: "box",
+          layout: "vertical",
+          contents: [
+            { type: "text", text: "แจ้งเตือนการส่งฟอร์ม", weight: "bold", size: "lg" }
+          ]
+        },
+        body: {
+          type: "box",
+          layout: "vertical",
+          spacing: "md",
+          contents: [
+            {
+              type: "box",
+              layout: "baseline",
+              spacing: "sm",
+              contents: [
+                { type: "text", text: "ชื่อ-สกุล:", color: "#aaaaaa", size: "sm", flex: 3 },
+                { type: "text", text: data.fullName, wrap: true, size: "sm", flex: 5 }
+              ]
+            },
+            {
+              type: "box",
+              layout: "baseline",
+              spacing: "sm",
+              contents: [
+                { type: "text", text: "เบอร์โทรศัพท์:", color: "#aaaaaa", size: "sm", flex: 3 },
+                { type: "text", text: data.phone, wrap: true, size: "sm", flex: 5 }
+              ]
+            },
+            {
+              type: "box",
+              layout: "baseline",
+              spacing: "sm",
+              contents: [
+                { type: "text", text: "วันที่เริ่มต้น:", color: "#aaaaaa", size: "sm", flex: 3 },
+                { type: "text", text: data.bookingStartDate, wrap: true, size: "sm", flex: 5 }
+              ]
+            },
+            {
+              type: "box",
+              layout: "baseline",
+              spacing: "sm",
+              contents: [
+                { type: "text", text: "วันที่สิ้นสุด:", color: "#aaaaaa", size: "sm", flex: 3 },
+                { type: "text", text: data.bookingEndDate, wrap: true, size: "sm", flex: 5 }
+              ]
+            },
+            {
+              type: "box",
+              layout: "baseline",
+              spacing: "sm",
+              contents: [
+                { type: "text", text: "สถานะ:", color: "#aaaaaa", size: "sm", flex: 3 },
+                { type: "text", text: data.status, wrap: true, size: "sm", flex: 5 }
+              ]
+            },
+            {
+              type: "box",
+              layout: "baseline",
+              spacing: "sm",
+              contents: [
+                { type: "text", text: "ประเภทสนามที่จอง:", color: "#aaaaaa", size: "sm", flex: 3 },
+                { type: "text", text: data.fieldType, wrap: true, size: "sm", flex: 5 }
+              ]
+            }
+          ]
+        }
+      }
+    }]
+  };
+  
+  UrlFetchApp.fetch("https://api.line.me/v2/bot/message/push", {
+    method: 'post',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${ACCESS_TOKEN}`
+    },
+    payload: JSON.stringify(payload)
+  });
 }
 
 function doPost(e) {
@@ -515,7 +486,6 @@ function doPost(e) {
       }
     }
     
-    // For booking form
     const data = e.parameter;
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
     
@@ -541,7 +511,7 @@ function doPost(e) {
         const file = DriveApp.createFile(blob);
         file.setName(`สลิป_${data.fullName}_${new Date().getTime()}.${data.paymentSlipName.split('.').pop()}`);
         
-        const spreadsheetFile = DriveApp.getFileById(DriveId);
+        const spreadsheetFile = DriveApp.getFileById("1V3Ap86twgdVHKpEmaDpJJ1oqNlYcRUDg");
         const parentFolders = spreadsheetFile.getParents();
         if (parentFolders.hasNext()) {
           const folder = parentFolders.next();
@@ -590,9 +560,8 @@ function doPost(e) {
     
     sheet.appendRow(newRow);
     
-    // Send detailed Flex Message via LINE Messaging API
-    sendLineFlexMessagePush(data);
-    
+    sendBookingNotification(data);
+
     return ContentService
       .createTextOutput(JSON.stringify({
         success: true,

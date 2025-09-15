@@ -11,7 +11,7 @@ const TIME_SLOTS = {
 };
 
 function bookCalendar(reserveId, startDate, endDate, timeSlotKey, userName, fieldType, note) {
-  const calendarId = "5265c30fcf5d9e7d229adef57a1a86ad6bbcc731ce48dffa4e117695e08c8d55@group.calendar.google.com";
+  const calendarId = "xxx@group.calendar.google.com";
   const calendar = CalendarApp.getCalendarById(calendarId);
   const timeSlot = TIME_SLOTS[timeSlotKey];
 

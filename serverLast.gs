@@ -3,7 +3,7 @@ const LINE_OA_ID = "@xxx";
 const PREFILL_TEXT = "กรอกเบอร์โทรเพื่อยืนยัน : "; 
 const prefillURL = "https://line.me/R/oaMessage/" + LINE_OA_ID + "/?" + encodeURIComponent(PREFILL_TEXT); 
 
-const Line_USER_ID = "xxx"; // Assuming this is the recipient ID 
+const Line_USER_ID = "xxx"; // Admin Line UID 
 const DriveId = "xxx"; 
 const CalendarID = "xxx"; 
 const ADMIN_APPROVAL_URL = "https://script.google.com/macros/s/xxx/exec"; 

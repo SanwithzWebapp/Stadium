@@ -642,25 +642,29 @@ function doPost(e) {
     if (sheet.getLastRow() === 0) { 
       sheet.getRange(1, 1, 1, 14).setValues([[ 
         'วันที่บันทึก', 'ชื่อ-สกุล', 'เบอร์โทรศัพท์', 'วันที่จอง (เริ่มต้น)', 'วันที่จอง (สิ้นสุด)',  
-        'ช่วงเวลา', 'ประเภทสนาม', 'สถานะ', 'อุปกรณ์กีฬา', 'เจ้าหน้าที่', 'หมายเหตุ', 'สลิปการโอน', 'รหัสการจอง', 'สถานะการจอง' 
+        'ช่วงเวลา', 'ประเภทสนาม', 'สถานะ', 'อุปกรณ์กีฬา', 'เจ้าหน้าที่', 'หมายเหตุ', 'เอกสารแนบ', 'รหัสการจอง', 'สถานะการจอง' 
       ]]); 
     } 
       
     const reserveId = `BOOK_${new Date().getTime()}`; 
     data.bookingId = reserveId; // Add the bookingId to the data object
       
-    let paymentSlipUrl = ''; 
+    let uploadedFileUrl = ''; 
       
-    if (data.paymentSlipData) { 
+    if (data.fileData) { 
       try { 
         const blob = Utilities.newBlob( 
-          Utilities.base64Decode(data.paymentSlipData), 
-          data.paymentSlipMimeType, 
-          data.paymentSlipName 
+          Utilities.base64Decode(data.fileData), 
+          data.fileMimeType, 
+          data.fileName 
         ); 
-          
+        
+        // Define a more descriptive file name based on the file type
+        let filePrefix = (data.fileType === 'paymentSlip') ? 'สลิป' : 'เอกสารอนุมัติ';
+        let newFileName = `${filePrefix}_${data.fullName}_${new Date().getTime()}.${data.fileName.split('.').pop()}`;
+
         const file = DriveApp.createFile(blob); 
-        file.setName(`สลิป_${data.fullName}_${new Date().getTime()}.${data.paymentSlipName.split('.').pop()}`); 
+        file.setName(newFileName); 
           
         const spreadsheetFile = DriveApp.getFileById(DriveId); 
         const parentFolders = spreadsheetFile.getParents(); 
@@ -671,11 +675,11 @@ function doPost(e) {
         } 
           
         file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); 
-        paymentSlipUrl = file.getUrl(); 
+        uploadedFileUrl = file.getUrl(); 
           
       } catch (error) { 
         console.error('Error uploading file:', error); 
-        paymentSlipUrl = 'เกิดข้อผิดพลาดในการอัปโหลด'; 
+        uploadedFileUrl = 'เกิดข้อผิดพลาดในการอัปโหลด'; 
       } 
     } 
       
@@ -705,7 +709,7 @@ function doPost(e) {
       data.equipment || '', 
       data.staff || '', 
       data.notes || '', 
-      paymentSlipUrl, 
+      uploadedFileUrl, 
       reserveId,
       'รอดำเนินการ' // Set the initial status
     ]; 
@@ -732,3 +736,4 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON); 
   } 
 }
+
